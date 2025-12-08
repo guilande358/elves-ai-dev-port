@@ -3,6 +3,14 @@ import { ExternalLink, Github } from "lucide-react";
 
 const projects = [
   {
+    title: "Tutor EduKI",
+    description: "Plataforma de tutor de IA personalizado para aprendizado interativo. Sistema completo com autenticação e experiência educacional adaptativa.",
+    tags: ["Lovable", "IA", "Educação", "React"],
+    image: "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=600&h=400&fit=crop",
+    liveUrl: "https://tutor-eduki358.lovable.app",
+    githubUrl: null,
+  },
+  {
     title: "E-commerce Dashboard",
     description: "Dashboard administrativo para loja virtual construído com ferramentas no-code e integração com IA para análise de dados.",
     tags: ["Webflow", "Airtable", "ChatGPT"],
@@ -79,14 +87,20 @@ const Projects = () => {
 
                   {/* Links */}
                   <div className={`flex gap-4 pt-2 ${index % 2 === 1 ? "md:justify-end" : ""}`}>
-                    <a
-                      href={project.githubUrl}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Github className="h-5 w-5" />
-                    </a>
+                    {project.githubUrl && (
+                      <a
+                        href={project.githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Github className="h-5 w-5" />
+                      </a>
+                    )}
                     <a
                       href={project.liveUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-muted-foreground hover:text-primary transition-colors"
                     >
                       <ExternalLink className="h-5 w-5" />
