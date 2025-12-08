@@ -19,8 +19,22 @@ const Hero = () => {
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
+          {/* Profile Photo */}
+          <div className="mb-8 opacity-0 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="relative inline-block">
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary via-primary/50 to-primary animate-spin-slow opacity-75 blur-sm" />
+              <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-primary/50 shadow-glow">
+                <img
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"
+                  alt="Elves Guilande - Desenvolvedor Web"
+                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Code Tag */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border mb-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-sm font-mono text-muted-foreground">
               Disponível para novos projetos
@@ -28,23 +42,23 @@ const Hero = () => {
           </div>
 
           {/* Main Heading */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 opacity-0 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 opacity-0 animate-fade-in" style={{ animationDelay: '0.3s' }}>
             Olá, eu sou{" "}
             <span className="text-gradient">Elves Guilande</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4 opacity-0 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4 opacity-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
             Desenvolvedor Web com <span className="text-foreground font-semibold">3 anos de experiência</span>
           </p>
 
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-10 opacity-0 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-10 opacity-0 animate-fade-in" style={{ animationDelay: '0.5s' }}>
             Especializado em <span className="text-primary font-mono">HTML</span> + <span className="text-primary font-mono">CSS</span> e plataformas{" "}
             <span className="text-foreground font-semibold">No-Code/Low-Code com IA</span>
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 opacity-0 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 opacity-0 animate-fade-in" style={{ animationDelay: '0.6s' }}>
             <Button variant="hero" size="lg">
               <a href="#projects">Ver Projetos</a>
             </Button>
@@ -54,7 +68,7 @@ const Hero = () => {
           </div>
 
           {/* Social Links */}
-          <div className="flex items-center justify-center gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          <div className="flex items-center justify-center gap-4 opacity-0 animate-fade-in" style={{ animationDelay: '0.7s' }}>
             <a
               href="https://github.com"
               target="_blank"
@@ -81,7 +95,7 @@ const Hero = () => {
         </div>
 
         {/* Scroll Indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-0 animate-fade-in" style={{ animationDelay: '0.8s' }}>
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-0 animate-fade-in" style={{ animationDelay: '0.9s' }}>
           <a href="#about" className="flex flex-col items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
             <span className="text-xs font-mono">scroll</span>
             <ArrowDown className="h-4 w-4 animate-bounce" />
