@@ -1,12 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Github } from "lucide-react";
+import projectEduki from "@/assets/project-eduki.png";
+import projectCode1 from "@/assets/project-code-1.png";
+import projectCode2 from "@/assets/project-code-2.png";
+import projectLovable from "@/assets/project-lovable.png";
 
 const projects = [
   {
     title: "Tutor EduKI",
     description: "Plataforma de tutor de IA personalizado para aprendizado interativo. Sistema completo com autenticação e experiência educacional adaptativa.",
     tags: ["Lovable", "IA", "Educação", "React"],
-    image: "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=600&h=400&fit=crop",
+    image: projectEduki,
     liveUrl: "https://tutor-eduki358.lovable.app",
     githubUrl: null,
   },
@@ -14,25 +18,25 @@ const projects = [
     title: "E-commerce Dashboard",
     description: "Dashboard administrativo para loja virtual construído com ferramentas no-code e integração com IA para análise de dados.",
     tags: ["Webflow", "Airtable", "ChatGPT"],
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=400&fit=crop",
-    liveUrl: "#",
-    githubUrl: "#",
+    image: projectCode1,
+    liveUrl: "https://bit.ly/4pGhWzm",
+    githubUrl: null,
   },
   {
     title: "Portfolio Interativo",
     description: "Site portfolio com animações avançadas e design responsivo, desenvolvido com HTML, CSS e Framer.",
     tags: ["HTML", "CSS", "Framer"],
-    image: "https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=600&h=400&fit=crop",
-    liveUrl: "#",
-    githubUrl: "#",
+    image: projectCode2,
+    liveUrl: "https://bit.ly/4pGhWzm",
+    githubUrl: null,
   },
   {
     title: "App de Gestão de Tarefas",
     description: "Aplicativo de produtividade criado com plataforma low-code, incluindo automações inteligentes com IA.",
     tags: ["Bubble", "Zapier", "Claude"],
-    image: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=600&h=400&fit=crop",
-    liveUrl: "#",
-    githubUrl: "#",
+    image: projectLovable,
+    liveUrl: "https://bit.ly/4pGhWzm",
+    githubUrl: null,
   },
 ];
 
