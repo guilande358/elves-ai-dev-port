@@ -20,9 +20,9 @@ const contactSchema = z.object({
 type ContactFormData = z.infer<typeof contactSchema>;
 
 // EmailJS Configuration - Replace with your own credentials from https://www.emailjs.com
-const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
-const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
-const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+const EMAILJS_SERVICE_ID = "service_av9xav9";
+const EMAILJS_TEMPLATE_ID = "template_h7g0lt2";
+const EMAILJS_PUBLIC_KEY = "YOUR_PU";
 
 const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
