@@ -7,7 +7,7 @@ import { Mail, MapPin, Send, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import emailjs from "@emailjs/browser";
 import { useToast } from "@/hooks/use-toast";
 
 const contactSchema = z.object({
@@ -18,6 +18,11 @@ const contactSchema = z.object({
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
+
+// EmailJS Configuration - Replace with your own credentials from https://www.emailjs.com
+const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
+const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
+const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
 
 const Contact = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,11 +40,17 @@ const Contact = () => {
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke("send-contact-email", {
-        body: data,
-      });
-
-      if (error) throw error;
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          from_name: data.name,
+          from_email: data.email,
+          subject: data.subject || "Sem assunto",
+          message: data.message,
+        },
+        EMAILJS_PUBLIC_KEY
+      );
 
       toast({
         title: "Mensagem enviada!",
