@@ -1,1 +1,7 @@
 project_id = "xwomfroxqqwfpugvxryv"
+
+[functions.validate-dev-key]
+verify_jwt = false
+
+[functions.dev-crud]
+verify_jwt = false
