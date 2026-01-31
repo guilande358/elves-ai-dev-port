@@ -14,7 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profile_settings: {
+        Row: {
+          available_for_work: boolean | null
+          bio: string | null
+          email: string | null
+          github_url: string | null
+          id: string
+          linkedin_url: string | null
+          location: string | null
+          name: string
+          projects_delivered: number | null
+          title: string | null
+          updated_at: string | null
+          years_experience: number | null
+        }
+        Insert: {
+          available_for_work?: boolean | null
+          bio?: string | null
+          email?: string | null
+          github_url?: string | null
+          id?: string
+          linkedin_url?: string | null
+          location?: string | null
+          name?: string
+          projects_delivered?: number | null
+          title?: string | null
+          updated_at?: string | null
+          years_experience?: number | null
+        }
+        Update: {
+          available_for_work?: boolean | null
+          bio?: string | null
+          email?: string | null
+          github_url?: string | null
+          id?: string
+          linkedin_url?: string | null
+          location?: string | null
+          name?: string
+          projects_delivered?: number | null
+          title?: string | null
+          updated_at?: string | null
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          description: string
+          github_url: string | null
+          id: string
+          image_url: string | null
+          live_url: string | null
+          order_index: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          github_url?: string | null
+          id?: string
+          image_url?: string | null
+          live_url?: string | null
+          order_index?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          github_url?: string | null
+          id?: string
+          image_url?: string | null
+          live_url?: string | null
+          order_index?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          created_at: string | null
+          description: string
+          icon: string | null
+          id: string
+          level: number | null
+          order_index: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          icon?: string | null
+          id?: string
+          level?: number | null
+          order_index?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          icon?: string | null
+          id?: string
+          level?: number | null
+          order_index?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
