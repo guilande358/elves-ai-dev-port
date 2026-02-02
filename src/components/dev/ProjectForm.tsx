@@ -3,12 +3,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDevCrud } from '@/hooks/useDevCrud';
+import { useDevAuth } from '@/contexts/DevAuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Sparkles, Link, Upload } from 'lucide-react';
+import { ImageUpload } from './ImageUpload';
+import { supabase } from '@/integrations/supabase/client';
 
 const projectSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -41,7 +45,10 @@ interface ProjectFormProps {
 
 export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [imageTab, setImageTab] = useState<'url' | 'upload'>('url');
   const { createItem, updateItem } = useDevCrud();
+  const { token } = useDevAuth();
   const { toast } = useToast();
 
   const form = useForm<ProjectFormValues>({
@@ -56,6 +63,59 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
       order_index: project?.order_index || 0,
     },
   });
+
+  const liveUrl = form.watch('live_url');
+
+  const handleGenerateDescription = async () => {
+    const url = form.getValues('live_url');
+    
+    if (!url) {
+      toast({
+        title: 'URL necessária',
+        description: 'Insira a URL do projeto para gerar a descrição automaticamente.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-project', {
+        body: { url },
+        headers: {
+          'x-dev-token': token!,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data.success) throw new Error(data.error);
+
+      form.setValue('description', data.description);
+      
+      // Optionally set title if empty
+      if (!form.getValues('title') && data.title) {
+        form.setValue('title', data.title);
+      }
+
+      toast({
+        title: 'Descrição gerada',
+        description: 'A descrição foi preenchida automaticamente. Você pode editá-la livremente.',
+      });
+    } catch (error) {
+      console.error('Generate description error:', error);
+      toast({
+        title: 'Erro',
+        description: error instanceof Error ? error.message : 'Erro ao gerar descrição',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleImageUpload = (url: string) => {
+    form.setValue('image_url', url);
+  };
 
   const onSubmit = async (values: ProjectFormValues) => {
     setIsLoading(true);
@@ -111,9 +171,32 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
           render={({ field }) => (
             <FormItem>
               <FormLabel>Descrição</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Descreva o projeto..." {...field} />
-              </FormControl>
+              <div className="space-y-2">
+                <FormControl>
+                  <Textarea placeholder="Descreva o projeto..." {...field} />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={isGenerating || !liveUrl}
+                  className="gap-2"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  Gerar com IA
+                </Button>
+                <FormDescription>
+                  {liveUrl 
+                    ? 'Clique em "Gerar com IA" para criar uma descrição automática baseada no site.'
+                    : 'Adicione a URL do projeto para habilitar a geração automática.'
+                  }
+                </FormDescription>
+              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -139,10 +222,30 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
           name="image_url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>URL da Imagem</FormLabel>
-              <FormControl>
-                <Input placeholder="https://..." {...field} />
-              </FormControl>
+              <FormLabel>Imagem do Projeto</FormLabel>
+              <Tabs value={imageTab} onValueChange={(v) => setImageTab(v as 'url' | 'upload')}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="url" className="gap-2">
+                    <Link className="h-4 w-4" />
+                    URL
+                  </TabsTrigger>
+                  <TabsTrigger value="upload" className="gap-2">
+                    <Upload className="h-4 w-4" />
+                    Upload
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="url">
+                  <FormControl>
+                    <Input placeholder="https://..." {...field} />
+                  </FormControl>
+                </TabsContent>
+                <TabsContent value="upload">
+                  <ImageUpload 
+                    onUploadComplete={handleImageUpload}
+                    currentUrl={field.value}
+                  />
+                </TabsContent>
+              </Tabs>
               <FormMessage />
             </FormItem>
           )}

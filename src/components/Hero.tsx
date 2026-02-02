@@ -1,8 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { ArrowDown, Github, Linkedin, Mail } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import profilePhoto from "@/assets/profile-photo.jpg";
+import { useSecretGesture } from "@/hooks/useSecretGesture";
 
 const Hero = () => {
+  const navigate = useNavigate();
+  
+  const { handlers, isDragging, progress } = useSecretGesture({
+    threshold: 100,
+    onActivate: () => navigate('/dev'),
+  });
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       {/* Background Glow Effect */}
@@ -20,15 +29,31 @@ const Hero = () => {
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Profile Photo */}
+          {/* Profile Photo with Secret Gesture */}
           <div className="mb-8 opacity-0 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <div className="relative inline-block">
-              <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary via-primary/50 to-primary animate-spin-slow opacity-75 blur-sm" />
-              <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-primary/50 shadow-glow">
+            <div 
+              className="relative inline-block select-none"
+              {...handlers}
+              style={{ 
+                cursor: isDragging ? 'grabbing' : 'grab',
+                touchAction: 'none',
+              }}
+            >
+              <div 
+                className="absolute -inset-1 rounded-full bg-gradient-to-r from-primary via-primary/50 to-primary animate-spin-slow blur-sm transition-opacity duration-200"
+                style={{ opacity: isDragging ? 0.9 + progress * 0.1 : 0.75 }}
+              />
+              <div 
+                className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-primary/50 shadow-glow transition-all duration-200"
+                style={{ 
+                  transform: isDragging ? `translateY(${-progress * 20}px) scale(${1 + progress * 0.05})` : 'none',
+                }}
+              >
                 <img
                   src={profilePhoto}
                   alt="Elves Guilande - Desenvolvedor Web"
                   className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                  draggable={false}
                 />
               </div>
             </div>
