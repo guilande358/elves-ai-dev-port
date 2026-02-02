@@ -1,204 +1,186 @@
 
 
-## Portal de Desenvolvedor - Sistema de Edição Protegido por Chave
+## Plano: Funcionalidades Avancadas do Portal Dev
 
-### Objetivo
-Criar um portal de administrador onde apenas quem possui a chave de acesso pode editar projetos, skills, informacoes pessoais e outras funcionalidades do portfolio.
+### 1. Upload de Imagens para Projetos
+
+**Objetivo:** Adicionar opcao de fazer upload de imagens do dispositivo alem da URL
+
+**Implementacao:**
+
+1. **Criar Storage Bucket** (Migracao SQL):
+```sql
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('project-images', 'project-images', true);
+
+-- Politica de leitura publica
+CREATE POLICY "Public read access" ON storage.objects
+FOR SELECT USING (bucket_id = 'project-images');
+
+-- Politica de upload (apenas via service role)
+CREATE POLICY "Service role upload" ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'project-images');
+```
+
+2. **Nova Edge Function `upload-image`:**
+   - Recebe imagem em base64 ou FormData
+   - Valida token do desenvolvedor
+   - Faz upload para o bucket usando service_role
+   - Retorna URL publica da imagem
+
+3. **Atualizar ProjectForm.tsx:**
+   - Adicionar tabs: "URL" | "Upload"
+   - Componente de upload com drag-and-drop
+   - Preview da imagem selecionada
+   - Botao para enviar e obter URL
 
 ---
 
-## Arquitetura do Sistema
+### 2. Geracao Automatica de Descricao
 
-```text
-+------------------+     +-------------------+     +------------------+
-|   Pagina Dev     |---->|   Validacao de    |---->|   Dashboard      |
-|   (/dev)         |     |   Chave de Acesso |     |   Admin          |
-+------------------+     +-------------------+     +------------------+
-                                                           |
-                                  +------------------------+------------------------+
-                                  |                        |                        |
-                           +------v------+          +------v------+          +------v------+
-                           |   Editar    |          |   Editar    |          |   Editar    |
-                           |   Projetos  |          |   Skills    |          |   Perfil    |
-                           +-------------+          +-------------+          +-------------+
+**Objetivo:** Quando URL do projeto e adicionada, analisar o site e gerar descricao automaticamente
+
+**Implementacao:**
+
+1. **Nova Edge Function `analyze-project`:**
+   - Recebe URL do projeto
+   - Usa Firecrawl para scrape do site (obter titulo, descricao, conteudo)
+   - Usa Lovable AI (gemini-2.5-flash) para gerar descricao
+   - Retorna descricao gerada
+
+2. **Atualizar ProjectForm.tsx:**
+   - Botao "Gerar Descricao" ao lado do campo URL do Projeto
+   - Quando clicado, chama a Edge Function
+   - Preenche o campo descricao automaticamente
+   - Usuario pode editar livremente apos geracao
+
+**Fluxo:**
+```
+Usuario insere URL -> Clica "Gerar" -> Edge Function:
+  1. Scrape do site (Firecrawl)
+  2. Analise com IA (Lovable AI)
+  3. Retorna descricao
+-> Preenche campo descricao (editavel)
 ```
 
 ---
 
-## Componentes a Criar
+### 3. Acesso Discreto ao /dev (Gesto Secreto)
 
-### 1. Tabelas no Banco de Dados
+**Objetivo:** Arrastar foto de perfil para cima para aceder ao portal de desenvolvimento
 
-| Tabela | Campos | Descricao |
-|--------|--------|-----------|
-| `projects` | id, title, description, tags, image_url, live_url, github_url, order_index, created_at, updated_at | Armazena projetos editaveis |
-| `skills` | id, title, description, icon, level, created_at, updated_at | Armazena skills editaveis |
-| `profile_settings` | id, name, title, bio, years_experience, projects_delivered, email, github_url, linkedin_url, location, available_for_work, updated_at | Configuracoes do perfil |
-| `site_settings` | id, key, value, updated_at | Configuracoes gerais do site |
+**Implementacao:**
 
-### 2. Novas Paginas
+1. **Atualizar Hero.tsx:**
+   - Adicionar eventos de touch/mouse na foto de perfil
+   - Detectar gesto de arrastar para cima (swipe up) sem soltar
+   - Threshold: arrastar pelo menos 100px para cima
+   - Feedback visual sutil (leve brilho ou opacidade)
 
-| Pagina | Rota | Funcao |
-|--------|------|--------|
-| DevLogin | `/dev` | Formulario de entrada da chave de acesso |
-| DevDashboard | `/dev/dashboard` | Painel principal com opcoes de edicao |
-| DevProjects | `/dev/projects` | Lista e edicao de projetos |
-| DevSkills | `/dev/skills` | Lista e edicao de skills |
-| DevProfile | `/dev/profile` | Edicao do perfil e informacoes pessoais |
-| DevSettings | `/dev/settings` | Configuracoes gerais do site |
+2. **Logica do gesto:**
+```typescript
+// Eventos a implementar:
+- onMouseDown / onTouchStart: Iniciar tracking
+- onMouseMove / onTouchMove: Calcular distancia vertical
+- onMouseUp / onTouchEnd: Se distancia > 100px para cima, navegar para /dev
 
-### 3. Sistema de Autenticacao com Chave
+// Discreto:
+- Sem indicacao visual de que existe o gesto
+- Feedback apenas durante o arrastar (sutil)
+```
 
-**Metodo de Seguranca:**
-- Chave armazenada como secret no backend (nao exposta no frontend)
-- Edge Function para validar a chave inserida
-- Token JWT gerado apos validacao, armazenado em sessionStorage
-- Todas as operacoes de edicao passam pela validacao do token
+3. **Hook personalizado `useSecretGesture`:**
+   - Encapsula logica de detecao do gesto
+   - Retorna ref para o elemento
+   - Callback para acao quando gesto completo
 
 ---
 
-## Fluxo de Autenticacao
+## Arquivos a Criar/Modificar
 
-1. Usuario acessa `/dev`
-2. Insere a chave de acesso
-3. Frontend envia chave para Edge Function `validate-dev-key`
-4. Edge Function compara com secret `DEV_ACCESS_KEY`
-5. Se valido, retorna token JWT temporario (24h)
-6. Frontend armazena token e redireciona para dashboard
-7. Todas as operacoes CRUD verificam o token
+| Arquivo | Acao |
+|---------|------|
+| `supabase/migrations/xxx.sql` | Criar bucket storage |
+| `supabase/functions/upload-image/index.ts` | Upload de imagens |
+| `supabase/functions/analyze-project/index.ts` | Scrape + IA para descricao |
+| `src/components/dev/ProjectForm.tsx` | Adicionar upload + botao gerar descricao |
+| `src/components/dev/ImageUpload.tsx` | Componente de upload |
+| `src/components/Hero.tsx` | Adicionar gesto secreto |
+| `src/hooks/useSecretGesture.ts` | Hook para detecao do gesto |
+
+---
+
+## Dependencias
+
+- **Firecrawl Connector**: Necessario para scrape de sites
+  - Sera usado na Edge Function `analyze-project`
+  - Precisa estar configurado (verificar se ja existe)
+
+- **Lovable AI**: Disponivel nativamente
+  - Modelo: `google/gemini-2.5-flash` (rapido e eficiente)
+  - Sem necessidade de API key adicional
 
 ---
 
 ## Secao Tecnica
 
-### Edge Functions a Criar
+### Edge Function: analyze-project
 
-| Funcao | Endpoint | Descricao |
-|--------|----------|-----------|
-| `validate-dev-key` | POST | Valida a chave e retorna JWT |
-| (RLS) | - | As operacoes CRUD serao feitas via Supabase client com RLS |
+```typescript
+// 1. Receber URL
+const { url } = await req.json();
 
-### Politicas RLS
+// 2. Scrape com Firecrawl
+const scrapeResult = await fetch('https://api.firecrawl.dev/v1/scrape', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${FIRECRAWL_API_KEY}` },
+  body: JSON.stringify({ url, formats: ['markdown', 'html'] })
+});
 
-As tabelas terao RLS habilitado com:
-- **SELECT**: Publico (para o portfolio exibir os dados)
-- **INSERT/UPDATE/DELETE**: Apenas via service_role (Edge Function)
+// 3. Enviar para Lovable AI
+const aiResponse = await fetch('https://lovable.dev/api/ai', {
+  method: 'POST',
+  body: JSON.stringify({
+    model: 'google/gemini-2.5-flash',
+    messages: [{
+      role: 'user',
+      content: `Analise este site e gere uma descricao profissional de 2-3 frases para um portfolio: ${scrapeResult.markdown}`
+    }]
+  })
+});
 
-### Estrutura de Ficheiros
-
-```text
-src/
-├── pages/
-│   ├── Dev.tsx              # Login com chave
-│   ├── DevDashboard.tsx     # Painel principal
-│   ├── DevProjects.tsx      # Gerenciar projetos
-│   ├── DevSkills.tsx        # Gerenciar skills
-│   ├── DevProfile.tsx       # Gerenciar perfil
-│   └── DevSettings.tsx      # Configuracoes
-├── components/
-│   ├── dev/
-│   │   ├── DevHeader.tsx    # Header do painel admin
-│   │   ├── DevSidebar.tsx   # Menu lateral
-│   │   ├── ProjectForm.tsx  # Formulario de projeto
-│   │   ├── SkillForm.tsx    # Formulario de skill
-│   │   └── ProfileForm.tsx  # Formulario de perfil
-│   └── ...
-├── hooks/
-│   └── useDevAuth.ts        # Hook de autenticacao dev
-└── contexts/
-    └── DevAuthContext.tsx   # Contexto de autenticacao
-supabase/
-└── functions/
-    └── validate-dev-key/
-        └── index.ts         # Validacao da chave
+// 4. Retornar descricao
+return { description: aiResponse.text };
 ```
 
-### Migracao SQL
+### Hook: useSecretGesture
 
-```sql
--- Tabela de Projetos
-CREATE TABLE public.projects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  tags TEXT[] DEFAULT '{}',
-  image_url TEXT,
-  live_url TEXT,
-  github_url TEXT,
-  order_index INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Tabela de Skills
-CREATE TABLE public.skills (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  icon TEXT DEFAULT 'Code',
-  level INTEGER DEFAULT 50 CHECK (level >= 0 AND level <= 100),
-  order_index INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Tabela de Configuracoes do Perfil
-CREATE TABLE public.profile_settings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL DEFAULT 'Elves Guilande',
-  title TEXT DEFAULT 'Desenvolvedor Web',
-  bio TEXT,
-  years_experience INTEGER DEFAULT 3,
-  projects_delivered INTEGER DEFAULT 20,
-  email TEXT,
-  github_url TEXT,
-  linkedin_url TEXT,
-  location TEXT DEFAULT 'Brasil',
-  available_for_work BOOLEAN DEFAULT true,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Habilitar RLS
-ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profile_settings ENABLE ROW LEVEL SECURITY;
-
--- Politicas: Leitura publica
-CREATE POLICY "Public read access" ON public.projects FOR SELECT USING (true);
-CREATE POLICY "Public read access" ON public.skills FOR SELECT USING (true);
-CREATE POLICY "Public read access" ON public.profile_settings FOR SELECT USING (true);
+```typescript
+function useSecretGesture(onActivate: () => void) {
+  const ref = useRef<HTMLElement>(null);
+  const [startY, setStartY] = useState<number | null>(null);
+  
+  // Detectar inicio do gesto
+  const handleStart = (y: number) => setStartY(y);
+  
+  // Calcular movimento
+  const handleMove = (y: number) => {
+    if (startY && startY - y > 100) {
+      // Arrastar para cima mais de 100px
+      onActivate();
+    }
+  };
+  
+  return { ref, handlers };
+}
 ```
-
----
-
-## Resumo das Alteracoes
-
-| Tipo | Quantidade |
-|------|------------|
-| Tabelas no BD | 3 |
-| Edge Functions | 1 |
-| Novas Paginas | 6 |
-| Novos Componentes | 6+ |
-| Hooks | 1 |
-| Contextos | 1 |
-
----
-
-## Secret Necessario
-
-Sera necessario adicionar um novo secret:
-
-| Nome | Descricao |
-|------|-----------|
-| `DEV_ACCESS_KEY` | Chave de acesso ao portal de desenvolvimento (voce define a chave) |
 
 ---
 
 ## Seguranca
 
-- A chave nunca e exposta no frontend
-- Validacao acontece apenas no servidor (Edge Function)
-- Token JWT com expiracao de 24 horas
-- RLS impede modificacoes diretas no banco
-- Operacoes de escrita passam pela Edge Function com service_role
+- Upload de imagens passa pela Edge Function (validacao de token)
+- Firecrawl API key protegida no backend
+- Gesto secreto nao expoe nenhuma informacao sensivel
+- RLS continua protegendo os dados
 
