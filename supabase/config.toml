@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.dev-crud]
 verify_jwt = false
+
+[functions.upload-image]
+verify_jwt = false
+
+[functions.analyze-project]
+verify_jwt = false
