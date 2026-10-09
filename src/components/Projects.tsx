@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Github } from "lucide-react";
 import { useProjects } from "@/hooks/usePortfolioData";
+import ProjectCarousel3D from "@/components/ProjectCarousel3D";
 
 const Projects = () => {
   const { data: projects, loading } = useProjects();
@@ -55,13 +56,13 @@ const Projects = () => {
                   }`}
                 >
                   {/* Image */}
-                  <div className={`relative overflow-hidden rounded-xl ${index % 2 === 1 ? "md:order-2" : ""}`}>
-                    <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
-                    <img
-                      src={project.image_url || "/placeholder.svg"}
-                      alt={project.title}
-                      className="w-full h-64 md:h-80 object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
+                  <div className={`relative rounded-xl ${index % 2 === 1 ? "md:order-2" : ""}`}>
+                    <ProjectCarousel3D
+                      title={project.title}
+                      images={[
+                        ...(project.image_url ? [project.image_url] : []),
+                        ...(((project as { images?: string[] | null }).images) || []).filter((u) => u && u !== project.image_url),
+                      ]}
                     />
                   </div>
 
