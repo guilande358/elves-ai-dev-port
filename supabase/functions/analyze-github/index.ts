@@ -58,30 +58,45 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) return json({ success: false, error: 'IA não configurada' }, 500);
 
-    const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${lovableApiKey}`, 'Content-Type': 'application/json' },
+      headers: { 'Lovable-API-Key': lovableApiKey, Authorization: `Bearer ${lovableApiKey}`, 'X-Lovable-AIG-SDK': 'fetch', 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: 'Você cria entradas de portfólio de desenvolvedor. Responda SOMENTE com JSON válido: {"title": string, "description": string, "tags": string[], "live_url": string|null}. description: 2-3 frases profissionais em português. tags: 3-8 tecnologias principais com nomes legíveis (ex: "React", "Tailwind CSS", "Supabase"). live_url: URL de deploy encontrada no README/homepage/index.html, ou null.' },
-          { role: 'user', content: `Repositório: ${info.full_name}\nDescrição GitHub: ${info.description || '-'}\nHomepage: ${info.homepage || '-'}\nTopics: ${(info.topics || []).join(', ')}\nLinguagens: ${languages.join(', ')}\nDependências: ${deps.slice(0, 60).join(', ')}\n\nindex.html (início):\n${indexHtml.slice(0, 1200)}\n\nREADME:\n${readme.slice(0, 4000)}` },
-        ],
+        model: 'openai/gpt-6-astra',
+        stream: true,
+        store: false,
+        reasoning: { effort: 'low' },
+        instructions: 'Você cria entradas de portfólio de desenvolvedor. description: 2-3 frases profissionais em português. tags: 3-8 tecnologias principais com nomes legíveis (ex: "React", "Tailwind CSS", "Supabase"). live_url: URL de deploy encontrada no README/homepage/index.html, ou null.',
+        input: `Repositório: ${info.full_name}\nDescrição GitHub: ${info.description || '-'}\nHomepage: ${info.homepage || '-'}\nTopics: ${(info.topics || []).join(', ')}\nLinguagens: ${languages.join(', ')}\nDependências: ${deps.slice(0, 60).join(', ')}\n\nindex.html (início):\n${indexHtml.slice(0, 1200)}\n\nREADME:\n${readme.slice(0, 4000)}`,
+        text: { format: { type: 'json_schema', name: 'project', strict: true, schema: {
+          type: 'object', additionalProperties: false, required: ['title', 'description', 'tags', 'live_url'],
+          properties: { title: { type: 'string' }, description: { type: 'string' }, tags: { type: 'array', items: { type: 'string' } }, live_url: { type: ['string', 'null'] } },
+        } } },
       }),
     });
-    if (!aiRes.ok) {
+    if (!aiRes.ok || !aiRes.body) {
       const t = await aiRes.text();
       console.error('AI error', aiRes.status, t);
-      const msg = aiRes.status === 429 ? 'Limite de requisições excedido. Tente mais tarde.' : aiRes.status === 402 ? 'Créditos de IA esgotados.' : 'Erro ao gerar com IA';
+      let safe = '';
+      try { safe = JSON.parse(t).error?.message || JSON.parse(t).message || ''; } catch { /* ignore */ }
+      const msg = aiRes.status === 429 ? 'Limite de requisições excedido. Tente mais tarde.' : aiRes.status === 402 ? 'Créditos de IA esgotados.' : (safe || 'Erro ao gerar com IA');
       return json({ success: false, error: msg }, aiRes.status);
     }
-    const aiData = await aiRes.json();
+    let out = '';
+    const reader = aiRes.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      const lines = buf.split('\n'); buf = lines.pop() || '';
+      for (const l of lines) {
+        if (!l.startsWith('data:')) continue;
+        try { const ev = JSON.parse(l.slice(5).trim()); if (ev.type === 'response.output_text.delta') out += ev.delta; } catch { /* skip */ }
+      }
+    }
     let parsed: any = {};
-    try {
-      const raw = (aiData.choices?.[0]?.message?.content || '').replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(raw);
-    } catch { return json({ success: false, error: 'Resposta da IA inválida' }, 500); }
+    try { parsed = JSON.parse(out); } catch { return json({ success: false, error: 'Resposta da IA inválida' }, 500); }
 
     const liveUrl = info.homepage || parsed.live_url || null;
     const imageUrl = liveUrl ? `https://image.thum.io/get/width/1200/crop/750/${liveUrl}` : null;
