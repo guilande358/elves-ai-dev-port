@@ -12,6 +12,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Sparkles, Link, Upload } from 'lucide-react';
 import { ImageUpload } from './ImageUpload';
+import { GithubImport } from './GithubImport';
 import { supabase } from '@/integrations/supabase/client';
 
 const projectSchema = z.object({
@@ -151,6 +152,16 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <GithubImport
+          onResult={(r) => {
+            form.setValue('title', r.title);
+            form.setValue('description', r.description);
+            form.setValue('tags', r.tags.join(', '));
+            form.setValue('github_url', r.github_url);
+            if (r.live_url) form.setValue('live_url', r.live_url);
+            if (r.image_url && !form.getValues('image_url')) { form.setValue('image_url', r.image_url); setImageTab('url'); }
+          }}
+        />
         <FormField
           control={form.control}
           name="title"
