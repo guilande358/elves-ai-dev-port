@@ -10,10 +10,21 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, Link, Upload } from 'lucide-react';
+import { Loader2, Sparkles, Link, Upload, Camera } from 'lucide-react';
 import { ImageUpload } from './ImageUpload';
 import { GithubImport } from './GithubImport';
 import { supabase } from '@/integrations/supabase/client';
+
+const normUrl = (u: string) => (/^https?:\/\//i.test(u.trim()) ? u.trim() : `https://${u.trim()}`);
+/** Returns the site's icon (favicon) URL; keeps direct image links untouched. */
+const iconFor = (u: string) => {
+  if (!u.trim()) return '';
+  if (/\.(png|jpe?g|gif|webp|svg|ico)(\?|$)/i.test(u) || u.includes('/storage/')) return u.trim();
+  try { return `https://www.google.com/s2/favicons?domain=${new URL(normUrl(u)).hostname}&sz=256`; } catch { return ''; }
+};
+/** Live screenshot of the site, rendered by a headless browser. */
+const shotFor = (u: string) => `https://image.thum.io/get/width/1200/crop/750/${normUrl(u)}`;
+
 
 const projectSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -163,7 +174,8 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
             form.setValue('tags', r.tags.join(', '));
             form.setValue('github_url', r.github_url);
             if (r.live_url) form.setValue('live_url', r.live_url);
-            if (r.image_url && !form.getValues('image_url')) { form.setValue('image_url', r.image_url); setImageTab('url'); }
+            if (r.live_url && !form.getValues('image_url')) { const ic = iconFor(r.live_url); if (ic) form.setValue('image_url', ic); setImageTab('url'); }
+            if (r.live_url) { const s = shotFor(r.live_url); setGallery((g) => g.includes(s) ? g : [...g, s]); }
           }}
         />
         <FormField
@@ -249,10 +261,18 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
                     Upload
                   </TabsTrigger>
                 </TabsList>
-                <TabsContent value="url">
-                  <FormControl>
-                    <Input placeholder="https://..." {...field} />
-                  </FormControl>
+                <TabsContent value="url" className="space-y-2">
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input placeholder="https://site-do-projeto.com" {...field} />
+                    </FormControl>
+                    <Button type="button" variant="outline" className="shrink-0" onClick={() => {
+                      const icon = iconFor(field.value || form.getValues('live_url') || '');
+                      if (icon) form.setValue('image_url', icon);
+                    }}>Extrair ícone</Button>
+                  </div>
+                  {field.value && <img src={field.value} alt="Ícone do projeto" className="h-16 w-16 object-contain rounded border border-border bg-muted p-1" />}
+                  <FormDescription>Cole o link do site e clique em "Extrair ícone" para usar só o ícone do projeto.</FormDescription>
                 </TabsContent>
                 <TabsContent value="upload">
                   <ImageUpload 
@@ -271,6 +291,11 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
           <div className="flex gap-2">
             <Input placeholder="https://... (URL da imagem)" value={galleryUrl} onChange={(e) => setGalleryUrl(e.target.value)} />
             <Button type="button" variant="outline" onClick={() => { if (galleryUrl.trim()) { setGallery((g) => [...g, galleryUrl.trim()]); setGalleryUrl(''); } }}>Adicionar</Button>
+            <Button type="button" variant="outline" className="gap-2 shrink-0" disabled={!liveUrl} onClick={() => {
+              const s = shotFor(liveUrl!);
+              setGallery((g) => g.includes(s) ? g : [...g, s]);
+              toast({ title: 'Screenshot gerado', description: 'A captura do site foi adicionada à galeria.' });
+            }}><Camera className="h-4 w-4" /> Gerar Screenshot</Button>
           </div>
           <ImageUpload onUploadComplete={(url) => setGallery((g) => [...g, url])} />
           {gallery.length > 0 && (
