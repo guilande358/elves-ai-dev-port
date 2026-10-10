@@ -99,7 +99,40 @@ Deno.serve(async (req) => {
     try { parsed = JSON.parse(out); } catch { return json({ success: false, error: 'Resposta da IA inválida' }, 500); }
 
     const liveUrl = info.homepage || parsed.live_url || null;
-    const imageUrl = liveUrl ? `https://image.thum.io/get/width/1200/crop/750/${liveUrl}` : null;
+
+    // --- Real icon + public routes from the repository code ---
+    const branch = info.default_branch || 'main';
+    const raw = (p: string) => `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${p}`;
+    let paths: string[] = [];
+    try {
+      const t = await gh(`repos/${owner}/${repo}/git/trees/${branch}?recursive=1`);
+      if (t.ok) paths = ((await t.json()).tree || []).filter((x: any) => x.type === 'blob').map((x: any) => x.path);
+    } catch { /* ignore */ }
+
+    let iconUrl: string | null = null;
+    const linkIcon = indexHtml.match(/<link[^>]+rel=["'][^"']*icon[^"']*["'][^>]*>/i)?.[0].match(/href=["']([^"']+)["']/i)?.[1];
+    if (linkIcon) {
+      if (/^https?:\/\//.test(linkIcon)) iconUrl = linkIcon;
+      else { const c = linkIcon.replace(/^\.?\//, ''); const hit = paths.find((p) => p === `public/${c}` || p === c); if (hit) iconUrl = raw(hit); }
+    }
+    if (!iconUrl) {
+      const prefs = ['apple-touch-icon.png', 'icon-512.png', 'icon.svg', 'logo.svg', 'favicon.svg', 'icon.png', 'logo.png', 'favicon.png', 'favicon.ico'];
+      for (const n of prefs) { const hit = paths.find((p) => /^(public\/|src\/assets\/|static\/)?/.test(p) && p.toLowerCase().endsWith('/' + n) || p.toLowerCase() === n); if (hit) { iconUrl = raw(hit); break; } }
+    }
+
+    // Detect routes declared in the code (React Router etc.) and screenshot public ones
+    const routeFiles = paths.filter((p) => /^src\/(App|main|routes|router)[^/]*\.(t|j)sx?$/.test(p)).slice(0, 3);
+    const routeSrc = (await Promise.all(routeFiles.map((f) => ghText(owner, repo, f)))).join('\n');
+    const routes = new Set<string>(['/']);
+    for (const mm of routeSrc.matchAll(/path\s*[:=]\s*\{?\s*["'`](\/[^"'`]*)["'`]/g)) {
+      const r = mm[1];
+      if (r.includes(':') || r.includes('*') || /dashboard|admin|account|settings|profile|perfil|painel|conta/i.test(r)) continue;
+      routes.add(r);
+    }
+    const screenshots = liveUrl
+      ? [...routes].slice(0, 6).map((r) => `https://image.thum.io/get/width/1200/crop/750/${liveUrl.replace(/\/$/, '')}${r === '/' ? '' : r}`)
+      : [];
+    const imageUrl = iconUrl || screenshots[0] || null;
 
     return json({
       success: true,
@@ -109,6 +142,8 @@ Deno.serve(async (req) => {
       live_url: liveUrl,
       github_url: info.html_url,
       image_url: imageUrl,
+      icon_url: iconUrl,
+      screenshots,
     });
   } catch (e) {
     console.error('analyze-github error', e);
