@@ -33,6 +33,7 @@ interface Project {
   description: string;
   tags: string[];
   image_url: string | null;
+  images?: string[] | null;
   live_url: string | null;
   github_url: string | null;
   order_index: number;
@@ -48,6 +49,8 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [imageTab, setImageTab] = useState<'url' | 'upload'>('url');
+  const [gallery, setGallery] = useState<string[]>(project?.images || []);
+  const [galleryUrl, setGalleryUrl] = useState('');
   const { createItem, updateItem } = useDevCrud();
   const { token } = useDevAuth();
   const { toast } = useToast();
@@ -126,6 +129,7 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
       description: values.description,
       tags: values.tags.split(',').map(t => t.trim()).filter(Boolean),
       image_url: values.image_url || null,
+      images: gallery,
       live_url: values.live_url || null,
       github_url: values.github_url || null,
       order_index: values.order_index,
@@ -261,6 +265,26 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
             </FormItem>
           )}
         />
+
+        <div className="space-y-2">
+          <FormLabel>Galeria 3D (imagens extra)</FormLabel>
+          <div className="flex gap-2">
+            <Input placeholder="https://... (URL da imagem)" value={galleryUrl} onChange={(e) => setGalleryUrl(e.target.value)} />
+            <Button type="button" variant="outline" onClick={() => { if (galleryUrl.trim()) { setGallery((g) => [...g, galleryUrl.trim()]); setGalleryUrl(''); } }}>Adicionar</Button>
+          </div>
+          <ImageUpload onUploadComplete={(url) => setGallery((g) => [...g, url])} />
+          {gallery.length > 0 && (
+            <div className="grid grid-cols-4 gap-2">
+              {gallery.map((u, i) => (
+                <div key={u + i} className="relative group">
+                  <img src={u} alt="" className="h-16 w-full object-cover rounded border border-border" />
+                  <button type="button" onClick={() => setGallery((g) => g.filter((_, j) => j !== i))} className="absolute top-0 right-0 bg-destructive text-destructive-foreground text-xs px-1 rounded">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <FormDescription>Com 2 ou mais imagens o projeto gira em carrossel 3D no portfólio.</FormDescription>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
