@@ -9,9 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 interface ImageUploadProps {
   onUploadComplete: (url: string) => void;
   currentUrl?: string;
+  multiple?: boolean;
 }
 
-export function ImageUpload({ onUploadComplete, currentUrl }: ImageUploadProps) {
+export function ImageUpload({ onUploadComplete, currentUrl, multiple }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentUrl || null);
@@ -61,6 +62,7 @@ export function ImageUpload({ onUploadComplete, currentUrl }: ImageUploadProps) 
         if (!data.success) throw new Error(data.error);
 
         onUploadComplete(data.url);
+        if (multiple) setPreview(null);
         toast({
           title: 'Sucesso',
           description: 'Imagem enviada com sucesso!',
@@ -78,7 +80,7 @@ export function ImageUpload({ onUploadComplete, currentUrl }: ImageUploadProps) 
       }
     };
     reader.readAsDataURL(file);
-  }, [token, onUploadComplete, toast, currentUrl]);
+  }, [token, onUploadComplete, toast, currentUrl, multiple]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -94,14 +96,15 @@ export function ImageUpload({ onUploadComplete, currentUrl }: ImageUploadProps) 
     e.preventDefault();
     setIsDragging(false);
     
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  }, [handleFile]);
+    const files = Array.from(e.dataTransfer.files);
+    (multiple ? files : files.slice(0, 1)).forEach(handleFile);
+  }, [handleFile, multiple]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
-  }, [handleFile]);
+    const files = Array.from(e.target.files || []);
+    (multiple ? files : files.slice(0, 1)).forEach(handleFile);
+    e.target.value = '';
+  }, [handleFile, multiple]);
 
   const clearImage = useCallback(() => {
     setPreview(null);
@@ -155,7 +158,7 @@ export function ImageUpload({ onUploadComplete, currentUrl }: ImageUploadProps) 
                   <span className="font-semibold">Clique para enviar</span> ou arraste e solte
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  PNG, JPG ou WEBP (max. 5MB)
+                  {multiple ? 'Várias imagens de uma vez · ' : ''}PNG, JPG ou WEBP (max. 5MB)
                 </p>
               </>
             )}
@@ -164,6 +167,7 @@ export function ImageUpload({ onUploadComplete, currentUrl }: ImageUploadProps) 
             type="file" 
             className="hidden" 
             accept="image/*"
+            multiple={multiple}
             onChange={handleInputChange}
             disabled={isUploading}
           />

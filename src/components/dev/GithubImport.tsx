@@ -13,6 +13,8 @@ export interface GithubResult {
   live_url: string | null;
   github_url: string;
   image_url: string | null;
+  icon_url?: string | null;
+  screenshots?: string[];
 }
 
 interface Repo { name: string; html_url: string; description: string | null; language: string | null }
