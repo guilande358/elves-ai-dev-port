@@ -62,6 +62,7 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
   const [imageTab, setImageTab] = useState<'url' | 'upload'>('url');
   const [gallery, setGallery] = useState<string[]>(project?.images || []);
   const [galleryUrl, setGalleryUrl] = useState('');
+  const [routes, setRoutes] = useState('/');
   const { createItem, updateItem } = useDevCrud();
   const { token } = useDevAuth();
   const { toast } = useToast();
@@ -174,8 +175,10 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
             form.setValue('tags', r.tags.join(', '));
             form.setValue('github_url', r.github_url);
             if (r.live_url) form.setValue('live_url', r.live_url);
-            if (r.live_url && !form.getValues('image_url')) { const ic = iconFor(r.live_url); if (ic) form.setValue('image_url', ic); setImageTab('url'); }
-            if (r.live_url) { const s = shotFor(r.live_url); setGallery((g) => g.includes(s) ? g : [...g, s]); }
+            const ic = r.icon_url || (r.live_url ? iconFor(r.live_url) : '');
+            if (ic) { form.setValue('image_url', ic); setImageTab('url'); }
+            const shots = r.screenshots?.length ? r.screenshots : (r.live_url ? [shotFor(r.live_url)] : []);
+            setGallery((g) => [...g, ...shots.filter((s) => !g.includes(s))]);
           }}
         />
         <FormField
@@ -292,12 +295,16 @@ export function ProjectForm({ project, onSuccess, onCancel }: ProjectFormProps) 
             <Input placeholder="https://... (URL da imagem)" value={galleryUrl} onChange={(e) => setGalleryUrl(e.target.value)} />
             <Button type="button" variant="outline" onClick={() => { if (galleryUrl.trim()) { setGallery((g) => [...g, galleryUrl.trim()]); setGalleryUrl(''); } }}>Adicionar</Button>
             <Button type="button" variant="outline" className="gap-2 shrink-0" disabled={!liveUrl} onClick={() => {
-              const s = shotFor(liveUrl!);
-              setGallery((g) => g.includes(s) ? g : [...g, s]);
-              toast({ title: 'Screenshot gerado', description: 'A captura do site foi adicionada à galeria.' });
+              const base = normUrl(liveUrl!).replace(/\/$/, '');
+              const list = routes.split(/[,\n]/).map((r) => r.trim()).filter(Boolean)
+                .map((r) => shotFor(/^https?:/i.test(r) ? r : base + (r === '/' ? '' : (r.startsWith('/') ? r : '/' + r))));
+              setGallery((g) => [...g, ...list.filter((s) => !g.includes(s))]);
+              toast({ title: `${list.length} screenshot(s) gerado(s)`, description: 'As capturas foram adicionadas à galeria.' });
             }}><Camera className="h-4 w-4" /> Gerar Screenshot</Button>
           </div>
-          <ImageUpload onUploadComplete={(url) => setGallery((g) => [...g, url])} />
+          <Input placeholder="Páginas a capturar: /, /sobre, /precos" value={routes} onChange={(e) => setRoutes(e.target.value)} />
+          <FormDescription>Páginas com login não podem ser capturadas automaticamente — envie os seus prints abaixo (vários de uma vez).</FormDescription>
+          <ImageUpload multiple onUploadComplete={(url) => url && setGallery((g) => [...g, url])} />
           {gallery.length > 0 && (
             <div className="grid grid-cols-4 gap-2">
               {gallery.map((u, i) => (
