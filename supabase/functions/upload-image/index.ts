@@ -54,7 +54,12 @@ Deno.serve(async (req) => {
 
     // Generate unique filename
     const timestamp = Date.now();
-    const uniqueFilename = `${timestamp}-${filename}`;
+    const safeName = String(filename)
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9._-]+/g, '-')
+      .replace(/-+/g, '-').replace(/^-|-$/g, '')
+      .slice(-80) || 'image';
+    const uniqueFilename = `${timestamp}-${safeName}`;
 
     console.log(`Uploading image: ${uniqueFilename}`);
 
