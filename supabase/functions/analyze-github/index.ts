@@ -117,7 +117,8 @@ Deno.serve(async (req) => {
     }
     if (!iconUrl) {
       const prefs = ['apple-touch-icon.png', 'icon-512.png', 'icon.svg', 'logo.svg', 'favicon.svg', 'icon.png', 'logo.png', 'favicon.png', 'favicon.ico'];
-      for (const n of prefs) { const hit = paths.find((p) => /^(public\/|src\/assets\/|static\/)?/.test(p) && p.toLowerCase().endsWith('/' + n) || p.toLowerCase() === n); if (hit) { iconUrl = raw(hit); break; } }
+      const cand = paths.filter((p) => !p.includes('node_modules'));
+      for (const n of prefs) { const hit = cand.find((p) => p.toLowerCase() === 'public/' + n) || cand.find((p) => p.toLowerCase().endsWith('/' + n)); if (hit) { iconUrl = raw(hit); break; } }
     }
 
     // Detect routes declared in the code (React Router etc.) and screenshot public ones
